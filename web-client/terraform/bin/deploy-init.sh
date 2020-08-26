@@ -2,7 +2,7 @@
 
 ENVIRONMENT=$1
 
-BUCKET="${EFCMS_DOMAIN}.terraform.deploys"
+BUCKET="${ZONE_NAME}.terraform.deploys"
 KEY="ui-${ENVIRONMENT}.tfstate"
 LOCK_TABLE=efcms-terraform-lock
 REGION=us-east-1
@@ -24,7 +24,7 @@ fi
 # exit on any failure
 set -eo pipefail
 
-DYNAMSOFT_URL="https://dynamsoft-lib-${ENVIRONMENT}.${EFCMS_DOMAIN}"
+DYNAMSOFT_URL="https://dynamsoft-lib.${EFCMS_DOMAIN}"
 
 if [[ -z "${IS_DYNAMSOFT_ENABLED}" ]]
 then
