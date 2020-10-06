@@ -9,19 +9,20 @@
 #   - jq must be installed on your machine
 #   - aws cli must be installed on your machine
 #   - aws credentials must be setup on your machine
+#   - USTC_ADMIN_USER environmental variable is set
+#   - USTC_ADMIN_PASS environmental variable is set
 
 # Arguments
 #   - $1 - the environment [dev, stg, prod, exp1, exp1, etc]
 
 [ -z "$1" ] && echo "The ENV to deploy to must be provided as the \$1 argument.  An example value of this includes [dev, stg, prod... ]" && exit 1
+[ -z "${USTC_ADMIN_USER}" ] && echo "You must have USTC_ADMIN_USER set in your environment" && exit 1
 [ -z "${USTC_ADMIN_PASS}" ] && echo "You must have USTC_ADMIN_PASS set in your environment" && exit 1
 [ -z "${AWS_ACCESS_KEY_ID}" ] && echo "You must have AWS_ACCESS_KEY_ID set in your environment" && exit 1
 [ -z "${AWS_SECRET_ACCESS_KEY}" ] && echo "You must have AWS_SECRET_ACCESS_KEY set in your environment" && exit 1
 
 ENV=$1
 REGION="us-east-1"
-
-CURRENT_COLOR=$(aws dynamodb get-item --region us-east-1 --table-name "efcms-deploy-${ENV}" --key '{"pk":{"S":"deployed-stack"},"sk":{"S":"deployed-stack"}}' | jq -r ".Item.current.S")
 
 restApiId=$(aws apigateway get-rest-apis --region="${REGION}" --query "items[?name=='gateway_api_${ENV}'].id" --output text)
 
@@ -94,7 +95,7 @@ response=$(aws cognito-idp admin-initiate-auth \
   --client-id "${CLIENT_ID}" \
   --region "${REGION}" \
   --auth-flow ADMIN_NO_SRP_AUTH \
-  --auth-parameters USERNAME="ustcadmin@example.com"',PASSWORD'="${USTC_ADMIN_PASS}")
+  --auth-parameters USERNAME="${USTC_ADMIN_USER}"',PASSWORD'="${USTC_ADMIN_PASS}")
 adminToken=$(echo "${response}" | jq -r ".AuthenticationResult.IdToken")
 
 (( i=1 ))

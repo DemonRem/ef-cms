@@ -8,19 +8,20 @@
 #   - jq must be installed on your machine
 #   - aws cli must be installed on your machine
 #   - aws credentials must be setup on your machine
+#   - USTC_ADMIN_USER environmental variable must be set
+#   - USTC_ADMIN_PASS environmental variable must be set
 
 # Arguments
 #   - $1 - the environment [dev, stg, prod, exp1, exp1, etc]
 
 [ -z "$1" ] && echo "The ENV to deploy to must be provided as the \$1 argument.  An example value of this includes [dev, stg, prod... ]" && exit 1
+[ -z "${USTC_ADMIN_USER}" ] && echo "You must have USTC_ADMIN_USER set in your environment" && exit 1
 [ -z "${USTC_ADMIN_PASS}" ] && echo "You must have USTC_ADMIN_PASS set in your environment" && exit 1
 [ -z "${AWS_ACCESS_KEY_ID}" ] && echo "You must have AWS_ACCESS_KEY_ID set in your environment" && exit 1
 [ -z "${AWS_SECRET_ACCESS_KEY}" ] && echo "You must have AWS_SECRET_ACCESS_KEY set in your environment" && exit 1
 
 ENV=$1
 REGION="us-east-1"
-
-CURRENT_COLOR=$(aws dynamodb get-item --region us-east-1 --table-name "efcms-deploy-${ENV}" --key '{"pk":{"S":"deployed-stack"},"sk":{"S":"deployed-stack"}}' | jq -r ".Item.current.S")
 
 restApiId=$(aws apigateway get-rest-apis --region="${REGION}" --query "items[?name=='gateway_api_${ENV}'].id" --output text)
 
@@ -189,9 +190,9 @@ createJudgeAccount() {
   createAccount "judge${judgeName}@example.com" "judge" "" "" "${judgeNameLower}sChambers" "Judge ${judgeName}"
 }
 
-createAdmin "ustcadmin@example.com" "admin" "admin"
+createAdmin "${USTC_ADMIN_USER}" "admin" "admin"
 
-createAccount "migrator@example.com" "admin" "" "" "admin"
+createAccount "${MIGRATOR_USER}" "admin" "" "" "admin"
 createAccount "flexionustc+privatePractitioner@gmail.com" "privatePractitioner" "0" "GM9999" "privatePractitioner" "Private Practitioner Gmail" "Private" "Test" "private" "Practitioner"
 createAccount "flexionustc+irsPractitioner@gmail.com" "irsPractitioner" "0" "GM4444" "irsPractitioner" "IRS Practitioner Gmail" "IRS" "Test" "private" "Practitioner"
 createAccount "flexionustc+petitioner@gmail.com" "petitioner" "0" "0" "petitioner" "Petitioner Gmail"
