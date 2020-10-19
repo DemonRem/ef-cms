@@ -4,32 +4,36 @@
 
 If this is the first time running a blue/green deployment on the environment:
 
-1. Ensure you have `COGNITO_SUFFIX` environment variables properly set
-2. Run `npm run deploy:account-specific` if it has not already been run for the account.
-3. Ensure you have `ZONE_NAME` and `EFCMS_DOMAIN` environment variables properly set
-4. Run `npm run deploy:environment-specific <ENV>`
-5. Delete the environment's lambda S3 bucket and 4 UI S3 buckets:
+1. Ensure you have `COGNITO_SUFFIX` environment variable properly set. This is unique to the AWS Account
+2. Ensure that the new environment is not currently configured to be tracked in Kibana: ```export TF_VAR_log_group_environments='["stg"]'``` (It **should not be** in the array)
+3. Run `npm run deploy:account-specific` if it has not already been run for the account.
+4. Ensure you have `ZONE_NAME` and `EFCMS_DOMAIN` environment variables properly set
+5. Run `npm run deploy:environment-specific <ENV>`
+6. Delete the environment's lambda S3 bucket and 4 UI S3 buckets:
    * `<ENV>.<ZONE_NAME>.<ENV>.us-east-1.lambdas`
    * `app.<ENV>.<ZONE_NAME>`,
    * `<ENV>.<ZONE_NAME>`,
    * `app-failover.<ENV>.<ZONE_NAME>`,
    * `failover.<ENV>.<ZONE_NAME>`, and
-6. Attempt to run a deploy on circle. The deploy will fail on the deploy web-api terraform step. In order to resolve the error, run `./setup-s3-deploy-files.sh <ENV>`.
-7. Run the following command to set the environment's migrate flag to **true**:
-	```aws dynamodb put-item --region us-east-1 --table-name "efcms-deploy-${ENV}" --item '{"pk":{"S":"migrate"},"sk":{"S":"migrate"},"current":{"S":"true"}}'```
-8. Run the following command to set the environment's initial version (`${VERSION}` being the current version of the migrations, which you can tell in [this terraform file](web-api/terraform/template/main.tf)):
-	```aws dynamodb put-item --region us-east-1 --table-name "efcms-deploy-${ENV}" --item '{"pk":{"S":"destination-table-version"},"sk":{"S":"destination-table-version"},"current":{"S":"${VERSION}"}}'```
-9. Run the following command to set the environment's migrate flag to **false** (for next time):
-	```aws dynamodb put-item --region us-east-1 --table-name "efcms-deploy-${ENV}" --item '{"pk":{"S":"migrate"},"sk":{"S":"migrate"},"current":{"S":"false"}}'```
+7. Run locally some deploy that would setup my blue & green resources
+8. Attempt to run a deploy on circle. The deploy will fail on the deploy web-api terraform step. In order to resolve the error, run `./setup-s3-deploy-files.sh <ENV>`.
+9. Run the following command to set the environment's migrate flag to **true**:
+    ```aws dynamodb put-item --region us-east-1 --table-name "efcms-deploy-${ENV}" --item '{"pk":{"S":"migrate"},"sk":{"S":"migrate"},"current":{"S":"true"}}'```
+10. Run the following command to set the environment's initial version (`${VERSION}` being the current version of the migrations, which you can tell in [this terraform file](web-api/terraform/template/main.tf)):
+    ```aws dynamodb put-item --region us-east-1 --table-name "efcms-deploy-${ENV}" --item '{"pk":{"S":"destination-table-version"},"sk":{"S":"destination-table-version"},"current":{"S":"${VERSION}"}}'```
+11. Attempt to run a deploy on circle. (Re-run from failed)
+12. Then re-run again in order to set up the **green** resources. Be sure to access green API and blue API in order to generate their log groups so the next step can work:
+13. Then add the new environment to be tracked in Kibana: ```export TF_VAR_log_group_environments='["stg","NEW"]'``` (It **should be** in the array)
+14. Run `npm run deploy:account-specific` if it has not already been run for the account.
 
 ## If a Migration is necessary
 
 If it's time to run a migration, perform the following steps:
 
 1. Run the following command to set the environment's migrate flag to **true**:
-	```aws dynamodb put-item --region us-east-1 --table-name "efcms-deploy-${ENV}" --item '{"pk":{"S":"migrate"},"sk":{"S":"migrate"},"current":{"S":"true"}}'```
+    ```aws dynamodb put-item --region us-east-1 --table-name "efcms-deploy-${ENV}" --item '{"pk":{"S":"migrate"},"sk":{"S":"migrate"},"current":{"S":"true"}}'```
 2. If `destination-table-version` and `source-table-version` do not exist in the deploy table, create destination-table-version record using this command:
-	```aws dynamodb put-item --region us-east-1 --table-name "efcms-deploy-${ENV}" --item '{"pk":{"S":"destination-table-version"},"sk":{"S":"destination-table-version"},"current":{"S":"1"}}'```
+    ```aws dynamodb put-item --region us-east-1 --table-name "efcms-deploy-${ENV}" --item '{"pk":{"S":"destination-table-version"},"sk":{"S":"destination-table-version"},"current":{"S":"1"}}'```
 3. If `destination-table-version` and `source-table-version` do exist in the deploy table, increment destination-table-version by 1.
 
 ## If a Migration is not necessary
@@ -37,7 +41,7 @@ If it's time to run a migration, perform the following steps:
 Still figuring this out and testing
 
 1. Run the following command to set the environment's migrate flag to **false**:
-	```aws dynamodb put-item --region us-east-1 --table-name "efcms-deploy-${ENV}" --item '{"pk":{"S":"migrate"},"sk":{"S":"migrate"},"current":{"S":"false"}}'```
+    ```aws dynamodb put-item --region us-east-1 --table-name "efcms-deploy-${ENV}" --item '{"pk":{"S":"migrate"},"sk":{"S":"migrate"},"current":{"S":"false"}}'```
 
 ## If a new DynamoDB table and Elasticsearch domain is necessary
 
@@ -45,10 +49,10 @@ If a new dynamo table and elasticsearch domain is necessary, duplicate the modul
 
 1. Run a deploy in circle.
 2. Verify the new application works at: 
-	- https://<DEPLOYED_COLOR>-<ENV>.<ZONE_NAME>
-	- https://app-<DEPLOYED_COLOR>.<ENV>.<ZONE_NAME>
+    * https://<DEPLOYED_COLOR>-<ENV>.<ZONE_NAME>
+    * https://app-<DEPLOYED_COLOR>.<ENV>.<ZONE_NAME>
 3. Destroy the migration infrastructure to turn off the live streams
-	`DESTINATION_TABLE=b SOURCE_TABLE=a STREAM_ARN=abc npm run destroy:migration -- <DEPLOYED_ENV>`
+    `DESTINATION_TABLE=b SOURCE_TABLE=a STREAM_ARN=abc npm run destroy:migration -- <DEPLOYED_ENV>`
 
 ## Errors You May Encounter
 
