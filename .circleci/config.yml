@@ -817,9 +817,9 @@ jobs:
             npm ci
             npm rebuild node-sass
       - run:
-        name: Create Cypress Artifacts Directory
-        command: mkdir /tmp/cypress
-    - run:
+          name: Create Cypress Artifacts Directory
+          command: mkdir /tmp/cypress
+      - run:
           name: Setup Env
           command: |
             ENV=$(./get-env.sh $CIRCLE_BRANCH)
