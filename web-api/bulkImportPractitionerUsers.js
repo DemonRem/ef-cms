@@ -65,6 +65,12 @@ const formatRecord = record => {
     state: record['contact/state'],
   };
 
+  if (record['contact/country']) {
+    returnData.contact.country = record['contact/country'];
+  } else if (record['contact/countryType'] === 'international') {
+    returnData.contact.country = 'N/A';
+  }
+
   if (!returnData.contact.address1 && returnData.contact.address2) {
     returnData.contact.address1 = returnData.contact.address2;
     delete returnData.contact.address2;
@@ -109,6 +115,7 @@ const formatRecord = record => {
     'contact/address2',
     'contact/city',
     'contact/countryType',
+    'contact/country',
     'contact/phone',
     'contact/postalCode',
     'contact/state',
@@ -162,14 +169,20 @@ const formatRecord = record => {
 
   stream.on('readable', gatherRecords(csvColumns, output));
   stream.on('end', async () => {
+    const sleep = time =>
+      new Promise(resolve => {
+        setTimeout(resolve, time);
+      });
+
     const throttle = batch =>
       new Promise(resolve => {
         console.log(`-- batch ${batch + 1} --`);
-        setTimeout(resolve, 1000);
+        sleep(1000).then(resolve);
       });
+
     const records = output.map(formatRecord);
     const batchSize = {
-      api: 100, // per second
+      api: 75, // per second
       cognito: 30, // per second
     };
     let batchedRows = [];
@@ -246,9 +259,10 @@ const formatRecord = record => {
       return true;
     };
 
-    console.log('== START ' + new Date().toString() + '==');
     // Build list for Cognito
     const hasEmail = records.filter(record => record.email);
+
+    console.log('== START ' + new Date().toString() + '==');
     console.log(`we have ${hasEmail.length} with email addresses`);
     console.log(`we have ${records.length} total records`);
 
