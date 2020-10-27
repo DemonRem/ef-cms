@@ -9,8 +9,11 @@ const {
 const {
   createISODateString,
 } = require('../shared/src/business/utilities/DateHandler');
+const {
+  getUserPoolId,
+  getUserToken,
+} = require('./storage/scripts/loadTest/loadTestHelpers');
 const { gatherRecords, getCsvOptions } = require('../shared/src/tools/helpers');
-const { getUserToken } = require('./storage/scripts/loadTest/loadTestHelpers');
 
 const formatRecord = record => {
   const returnData = {};
@@ -90,6 +93,7 @@ const formatRecord = record => {
     'admissionsDate',
     'admissionsStatus',
     'birthYear',
+    'employer', // not used can remove
     'practitionerType',
     'firstName',
     'lastName',
@@ -147,6 +151,8 @@ const formatRecord = record => {
     password: process.env.USTC_ADMIN_PASS,
     username: 'ustcadmin@example.com',
   });
+  const userPoolId = await getUserPoolId({ cognito, env: process.env.ENV });
+  console.log(userPoolId);
 
   const data = fs.readFileSync(files[0], 'utf8');
 
@@ -156,10 +162,61 @@ const formatRecord = record => {
 
   stream.on('readable', gatherRecords(csvColumns, output));
   stream.on('end', async () => {
-    for (let row of output) {
-      const record = formatRecord(row);
-      const apiUrl = services[`gateway_api_${process.env.DEPLOYING_COLOR}`];
+    const throttle = batch =>
+      new Promise(resolve => {
+        console.log(`-- batch ${batch + 1} --`);
+        setTimeout(resolve, 1000);
+      });
+    const records = output.map(formatRecord);
+    const batchSize = {
+      api: 100, // per second
+      cognito: 30, // per second
+    };
+    let batchedRows = [];
+    const apiUrl = services[`gateway_api_${process.env.DEPLOYING_COLOR}`];
+    const createUserInCognito = async ({
+      barNumber,
+      email,
+      firstName,
+      lastName,
+      role,
+    }) => {
+      try {
+        await cognito
+          .adminCreateUser({
+            MessageAction: 'SUPPRESS',
+            UserAttributes: [
+              {
+                Name: 'email_verified',
+                Value: 'True',
+              },
+              {
+                Name: 'email',
+                Value: email,
+              },
+              {
+                Name: 'custom:role',
+                Value: role,
+              },
+              {
+                Name: 'name',
+                Value: [firstName, lastName].join(' '),
+              },
+            ],
+            UserPoolId: userPoolId,
+            Username: email,
+          })
+          .promise();
 
+        console.log(`SUCCESS ${barNumber}`);
+      } catch (err) {
+        console.log(err);
+        console.log(`ERROR ${barNumber}`);
+      }
+      return true;
+    };
+
+    const createUserInDawson = async record => {
       try {
         const result = await axios.post(
           `${apiUrl}/practitioners`,
@@ -186,7 +243,44 @@ const formatRecord = record => {
           console.log(err);
         }
       }
+      return true;
+    };
+
+    console.log('== START ' + new Date().toString() + '==');
+    // Build list for Cognito
+    const hasEmail = records.filter(record => record.email);
+    console.log(`we have ${hasEmail.length} with email addresses`);
+    console.log(`we have ${records.length} total records`);
+
+    while (hasEmail.length) {
+      batchedRows.push(hasEmail.splice(0, batchSize.cognito));
     }
+
+    for (let i = 0; i < batchedRows.length; i++) {
+      const promises = [throttle(i)];
+      for (let record of batchedRows[i]) {
+        promises.push(createUserInCognito(record));
+      }
+      await Promise.all(promises);
+    }
+
+    console.log('== FINISH COGNITO ' + new Date().toString() + '==');
+
+    batchedRows = [];
+    // Build list for API
+    while (records.length) {
+      batchedRows.push(records.splice(0, batchSize.api));
+    }
+
+    for (let i = 0; i < batchedRows.length; i++) {
+      const promises = [throttle(i)];
+      for (let record of batchedRows[i]) {
+        promises.push(createUserInDawson(record));
+      }
+      await Promise.all(promises);
+    }
+
+    console.log('== FINISH API ' + new Date().toString() + '==');
   });
 })();
 
