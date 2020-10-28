@@ -99,7 +99,6 @@ const formatRecord = record => {
     'admissionsDate',
     'admissionsStatus',
     'birthYear',
-    'employer', // not used can remove
     'practitionerType',
     'firstName',
     'lastName',
@@ -156,7 +155,7 @@ const formatRecord = record => {
     cognito,
     env: process.env.ENV,
     password: process.env.USTC_ADMIN_PASS,
-    username: 'ustcadmin@example.com',
+    username: 'ustcadmin@dawson.ustaxcourt.gov',
   });
   const userPoolId = await getUserPoolId({ cognito, env: process.env.ENV });
   console.log(userPoolId);
