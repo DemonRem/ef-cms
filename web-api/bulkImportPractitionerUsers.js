@@ -158,7 +158,7 @@ const formatRecord = record => {
     username: 'ustcadmin@dawson.ustaxcourt.gov',
   });
   const userPoolId = await getUserPoolId({ cognito, env: process.env.ENV });
-  console.log(userPoolId);
+  console.log({ userPoolId });
 
   const data = fs.readFileSync(files[0], 'utf8');
 
