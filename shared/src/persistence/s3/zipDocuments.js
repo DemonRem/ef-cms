@@ -54,8 +54,8 @@ exports.zipDocuments = ({
       .setArchiverOptions({ gzip: false })
       .archive(
         {
+          applicationContext,
           bucket: documentsBucket,
-          debug: true,
           onEntry,
           onProgress,
           region,

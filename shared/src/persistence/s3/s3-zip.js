@@ -1,5 +1,4 @@
 /* istanbul ignore file */
-/* eslint-disable no-console */
 const archiver = require('archiver');
 const s3Files = require('s3-files');
 
@@ -13,7 +12,7 @@ s3Zip.archive = function (opts, folder, filesS3, filesZip, extra, extraZip) {
   this.folder = folder;
 
   const noop = () => {};
-  self.debug = opts.debug || false;
+  self.applicationContext = opts.applicationContext;
   self.onEntry = opts.onEntry || noop;
   self.onProgress = opts.onProgress || noop;
 
@@ -60,17 +59,20 @@ s3Zip.archiveStream = function (stream, filesS3, filesZip, extras, extrasZip) {
 
   const extrasPromises = (extras || []).map((extra, index) =>
     Promise.resolve(extra).then(file => {
-      self.debug && console.log('append to zip from promise', extrasZip[index]);
+      self.applicationContext.logger.debug(
+        'append to zip from promise',
+        extrasZip[index],
+      );
       archive.append(file, { name: extrasZip[index] });
     }),
   );
 
   const extraFilesPromisesAll = Promise.all(extrasPromises).then(() => {
-    self.debug && console.log('promise.all complete');
+    self.applicationContext.logger.debug('promise.all complete');
   });
 
   archive.on('error', function (err) {
-    self.debug && console.log('archive error', err);
+    self.applicationContext.logger.debug('archive error', err);
   });
 
   archive.on('progress', self.onProgress);
@@ -79,7 +81,7 @@ s3Zip.archiveStream = function (stream, filesS3, filesZip, extras, extrasZip) {
   stream
     .on('data', function (file) {
       if (file.path[file.path.length - 1] === '/') {
-        self.debug && console.log("don't append to zip", file.path);
+        self.applicationContext.logger.debug("don't append to zip", file.path);
         return;
       }
       let fname;
@@ -96,7 +98,7 @@ s3Zip.archiveStream = function (stream, filesS3, filesZip, extras, extrasZip) {
         fname = file.path;
       }
       const entryData = typeof fname === 'object' ? fname : { name: fname };
-      self.debug && console.log('append to zip', fname);
+      self.applicationContext.logger.debug('append to zip', fname);
       if (file.data.length === 0) {
         archive.append('', entryData);
       } else {
@@ -104,12 +106,12 @@ s3Zip.archiveStream = function (stream, filesS3, filesZip, extras, extrasZip) {
       }
     })
     .on('end', function () {
-      self.debug && console.log('end -> finalize');
+      self.applicationContext.logger.debug('end -> finalize');
       extraFilesPromisesAll
         .then(() => {})
         .catch(() => {})
         .then(() => {
-          self.debug && console.log('promise.all -> finalize');
+          self.applicationContext.logger.debug('promise.all -> finalize');
           archive.finalize();
         });
     })
