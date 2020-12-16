@@ -81,7 +81,6 @@ module.exports = {
       type: 'short',
     },
     'pending.BOOL': {
-      index: false,
       type: 'boolean',
     },
     'pk.S': {
