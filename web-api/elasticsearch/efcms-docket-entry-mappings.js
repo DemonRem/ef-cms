@@ -1,6 +1,7 @@
 module.exports = {
   properties: {
     'associatedJudge.S': {
+      index: false,
       type: 'text',
     },
     case_relations: {
@@ -19,15 +20,18 @@ module.exports = {
       type: 'text',
     },
     'docketEntryId.S': {
+      index: false,
       type: 'text',
     },
     'docketNumber.S': {
-      type: 'text',
+      type: 'keyword',
     },
     'docketNumberSuffix.S': {
+      index: false,
       type: 'text',
     },
     'docketNumberWithSuffix.S': {
+      index: false,
       type: 'text',
     },
     'documentContents.S': {
@@ -39,24 +43,28 @@ module.exports = {
       type: 'text',
     },
     'documentType.S': {
-      type: 'text',
+      type: 'keyword',
     },
     'entityName.S': {
+      index: false,
       type: 'text',
     },
     'eventCode.S': {
-      type: 'text',
+      type: 'keyword',
     },
     'filingDate.S': {
       type: 'date',
     },
     'indexedTimestamp.N': {
-      type: 'text',
+      index: false,
+      type: 'integer',
     },
     'irsPractitioners.L.M.userId.S': {
+      index: false,
       type: 'text',
     },
     'isLegacyServed.BOOL': {
+      index: false,
       type: 'boolean',
     },
     'isSealed.BOOL': {
@@ -66,24 +74,29 @@ module.exports = {
       type: 'boolean',
     },
     'judge.S': {
-      type: 'text',
+      type: 'keyword',
     },
     'numberOfPages.N': {
-      type: 'text',
+      index: false,
+      type: 'short',
     },
     'pending.BOOL': {
+      index: false,
       type: 'boolean',
     },
     'pk.S': {
-      type: 'text',
+      type: 'keyword',
     },
     'privatePractitioners.L.M.userId.S': {
+      index: false,
       type: 'text',
     },
     'receivedAt.S': {
+      index: false,
       type: 'date',
     },
     'sealedDate.S': {
+      index: false,
       type: 'date',
     },
     'servedAt.S': {
@@ -93,7 +106,7 @@ module.exports = {
       type: 'text',
     },
     'sk.S': {
-      type: 'text',
+      type: 'keyword',
     },
   },
 };
