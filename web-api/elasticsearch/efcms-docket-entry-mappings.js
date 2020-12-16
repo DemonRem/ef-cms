@@ -1,7 +1,6 @@
 module.exports = {
   properties: {
     'associatedJudge.S': {
-      index: false,
       type: 'text',
     },
     case_relations: {
@@ -64,7 +63,6 @@ module.exports = {
       type: 'text',
     },
     'isLegacyServed.BOOL': {
-      index: false,
       type: 'boolean',
     },
     'isSealed.BOOL': {
