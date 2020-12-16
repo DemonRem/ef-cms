@@ -47,7 +47,7 @@ module.exports = {
     },
     'entityName.S': {
       index: false,
-      type: 'text',
+      type: 'keyword',
     },
     'eventCode.S': {
       type: 'keyword',
